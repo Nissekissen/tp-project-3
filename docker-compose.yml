@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - './backend:/usr/src/app/backend'
+    command: go run cmd/main.go cmd/routes.go -b 0.0.0.0
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+  communication:
+    env_file:
+      - .env
+    build:
+      context: ./communication
+      dockerfile: Dockerfile
+    volumes:
+      - './communication:/usr/src/app/communication'
+
+volumes:
+  postgres-db:
