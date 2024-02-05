@@ -9,6 +9,7 @@ import (
 func setupRoutes(app *fiber.App) {
 	app.Get("/queue", handlers.GetQueue)
 	app.Post("/queue", handlers.AddItemToQueue)
+	app.Delete("/queue/:id", handlers.DeleteQueueItem)
 	app.Get("/items", handlers.GetItems)
 	app.Post("/items", handlers.CreateItem)
 	app.Get("/items/:id", handlers.GetItem)

@@ -19,7 +19,7 @@ func GetQueue(c *fiber.Ctx) error {
 	if itemId != "" {
 		query.Where("item_id = ?", itemId)
 	}
-	
+
 	query.Find(&queueItems)
 	if query.Error != nil {
 		return c.Status(500).SendString("Could not get queue items")
@@ -60,4 +60,24 @@ func AddItemToQueue(c *fiber.Ctx) error {
 	database.DB.Create(&queueItem)
 
 	return c.Status(fiber.StatusCreated).JSON(queueItem)
+}
+
+func DeleteQueueItem(c *fiber.Ctx) error {
+
+	queueItemId := c.AllParams()["id"]
+
+	if queueItemId == "" {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	// Get queue item from database
+	queueItem := models.QueueItem{}
+	if err := database.DB.Where("id = ?", queueItemId).First(&queueItem).Error; err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	// Delete queue item from database
+	database.DB.Delete(&queueItem)
+
+	return c.SendStatus(fiber.StatusOK)
 }
