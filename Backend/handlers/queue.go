@@ -23,10 +23,10 @@ func GetQueue(c *fiber.Ctx) error {
 
 func AddItemToQueue(c *fiber.Ctx) error {
 
+	// To simplify for frontend, user will only input itemID and amount
 	type QueueItemInput struct {
 		ItemID uint `json:"item_id"`
-		Amount uint `json:"amount"`
-		ToID   uint `json:"to_id"`
+		Amount int  `json:"amount"`
 	}
 
 	var input QueueItemInput
@@ -46,7 +46,6 @@ func AddItemToQueue(c *fiber.Ctx) error {
 	queueItem := models.QueueItem{
 		ItemID:   input.ItemID,
 		Amount:   input.Amount,
-		ToID:     input.ToID,
 		Status:   "queued",
 		Position: uint(queueLength + 1),
 	}

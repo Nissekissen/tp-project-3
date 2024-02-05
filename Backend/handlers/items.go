@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"robotlager/database"
 	"robotlager/models"
-	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -42,30 +41,21 @@ func CreateItem(c *fiber.Ctx) error {
 
 	type ItemInput struct {
 		Name        string `json:"name"`
-		CellID      string `json:"cell_id"`
-		StartAmount string `json:"start_amount"`
+		CellID      int `json:"cell_id"`
+		StartAmount int `json:"start_amount"`
 	}
 
 	var input ItemInput
 	if err := c.BodyParser(&input); err != nil {
+		fmt.Println(err)
 		return c.Status(400).SendString("Could not parse JSON")
-	}
-
-	startAmountINT, err := strconv.Atoi(input.StartAmount)
-	if err != nil {
-		return c.Status(400).SendString("Could not parse start amount")
-	}
-
-	cellIDINT, err := strconv.Atoi(input.CellID)
-	if err != nil {
-		return c.Status(400).SendString("Could not parse cell ID")
 	}
 
 	// Create new item
 	item := models.Item{
 		Name:   input.Name,
-		Amount: uint(startAmountINT),
-		CellID: uint(cellIDINT),
+		Amount: uint(input.StartAmount),
+		CellID: uint(input.CellID),
 	}
 	fmt.Println(item)
 	database.DB.Create(&item)
@@ -82,8 +72,8 @@ func UpdateItem(c *fiber.Ctx) error {
 
 	type ItemInput struct {
 		Name        string `json:"name"`
-		CellID      string `json:"cell_id"`
-		StartAmount string `json:"start_amount"`
+		CellID      uint `json:"cell_id"`
+		Amount int `json:"start_amount"`
 	}
 
 	var input ItemInput
@@ -91,28 +81,15 @@ func UpdateItem(c *fiber.Ctx) error {
 		return c.Status(400).SendString("Could not parse JSON")
 	}
 
-	fmt.Println(c.Body())
-
-	startAmountINT, err := strconv.Atoi(input.StartAmount)
-	if err != nil {
-		fmt.Println(err)
-		return c.Status(400).SendString("Could not parse start amount")
-	}
-
-	cellIDINT, err := strconv.Atoi(input.CellID)
-	if err != nil {
-		return c.Status(400).SendString("Could not parse cell ID")
-	}
-
 	// Create new item
 	item := models.Item{
 		Name:   input.Name,
-		Amount: uint(startAmountINT),
-		CellID: uint(cellIDINT),
+		Amount: uint(input.Amount),
+		CellID: input.CellID,
 	}
 
 	// Update item
 	database.DB.Model(&models.Item{}).Where("id = ?", itemId).Updates(&item)
 
-	return c.Status(fiber.StatusCreated).JSON(item)
+	return c.Status(fiber.StatusOK).JSON(item)
 }
