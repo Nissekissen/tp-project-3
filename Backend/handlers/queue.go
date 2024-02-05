@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"robotlager/database"
 	"robotlager/models"
 
@@ -10,9 +11,15 @@ import (
 func GetQueue(c *fiber.Ctx) error {
 	// Get all queue items from the database
 
+	itemId := c.Query("item_id")
+
 	queueItems := []models.QueueItem{}
 
 	query := database.DB.Model(&models.QueueItem{})
+	if itemId != "" {
+		query.Where("item_id = ?", itemId)
+	}
+	
 	query.Find(&queueItems)
 	if query.Error != nil {
 		return c.Status(500).SendString("Could not get queue items")
@@ -31,6 +38,7 @@ func AddItemToQueue(c *fiber.Ctx) error {
 
 	var input QueueItemInput
 	if err := c.BodyParser(&input); err != nil {
+		fmt.Println(err)
 		return c.Status(400).SendString("Could not parse JSON")
 	}
 
