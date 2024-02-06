@@ -36,6 +36,7 @@ func AddItemToQueue(c *fiber.Ctx) error {
 		Amount int  `json:"amount"`
 	}
 
+	
 	var input QueueItemInput
 	if err := c.BodyParser(&input); err != nil {
 		fmt.Println(err)
@@ -54,7 +55,7 @@ func AddItemToQueue(c *fiber.Ctx) error {
 	queueItem := models.QueueItem{
 		ItemID:   input.ItemID,
 		Amount:   input.Amount,
-		Status:   "queued",
+		Status:   "Queued",
 		Position: uint(queueLength + 1),
 	}
 	database.DB.Create(&queueItem)
