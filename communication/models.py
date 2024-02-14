@@ -25,3 +25,18 @@ class Cell:
         self.x = x
         self.y = y
         self.z = z
+    
+    def to_bytes(self) -> bytes:
+        return bytes([self.x, self.y, self.z])
+
+class Instruction:
+    def __init__(self, id, from_id, to_id) -> None:
+        self.id = id
+        self.from_id = from_id
+        self.to_id = to_id
+    
+    def __str__(self) -> str:
+        return f"Instruction: id={self.id}, from_id={self.from_id}, to_id={self.to_id}"
+    
+    def to_bytes(self) -> bytes:
+        return bytes([self.from_id.to_bytes(), self.to_id.to_bytes()])

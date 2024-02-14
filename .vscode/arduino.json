@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:uno",
+    "programmer": "avrisp",
+    "sketch": "arduino\\Robotlager\\Robotlager.ino",
+    "port": "COM3"
+}

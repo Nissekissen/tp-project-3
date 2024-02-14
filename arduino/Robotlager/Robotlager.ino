@@ -25,7 +25,10 @@ bool calibrated = false;
 
 StepperController stepperX(X_DIR, X_STP, 30, 48000, 1);
 StepperController stepperY(Y_DIR, Y_STP, 15, 30000, 1); // TODO: Fix max steps
-StepperController stepperZ(Z_DIR, Z_STP, 30, 70000, 1); // TODO: Fix max steps
+StepperController stepperZ(Z_DIR, Z_STP, 30, 25000, 1); // TODO: Fix max steps
+
+uint8_t *data = (uint8_t *)malloc(7 * sizeof(uint8_t));
+int currentPos = 0;
 
 Vector3D positions[2];
 
@@ -46,33 +49,35 @@ void loop()
   {
   }
 
+  if (Serial.available() > 0 && Serial.read() == 'S') {
+    Serial.println(STATUS);
+  }
+
   if (Serial.available() > 0 && STATUS == WAITING)
   {
 
-    // Send one byte at a time
-    // Format: 00XXYYZZ
-    // XX = X-axis - maps to 0-100
-    // YY = Y-axis - maps to 0-100
-    // ZZ = Z-axis
+    // Format: One byte per axis, 3 bytes per position
 
-    uint8_t data = Serial.read();
+    String _data = Serial.readString();
+    char buf[7];
+    _data.toCharArray(buf, 7);
 
-    if ((tempData >> 6) & 0x03 == 0x03)
-    { // If first two bits are 11
-      tempData = data;
-      return;
-    }
+    data = (uint8_t *)buf;
 
-    uint8_t dataChar[2] = {tempData, data};
-
-    positions[0] = Vector3D(dataChar[0]);
-    positions[1] = Vector3D(dataChar[1]);
+    positions[0] = Vector3D(data[0], data[1], data[2]);
+    positions[1] = Vector3D(data[3], data[4], data[5]);
 
     stepperX.movePercentage(positions[0].x);
     stepperY.movePercentage(positions[0].y);
-
     STATUS = MOVING_X_Y;
-    tempData = 0xC0; // 11000000
+    currentPos = 0;
+
+    Serial.print("Moving to position ");
+    Serial.print(positions[0].x);
+    Serial.print(";");
+    Serial.println(positions[0].y);
+
+    return;
   }
 
   if (STATUS == MOVING_X_Y)
