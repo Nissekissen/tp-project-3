@@ -139,7 +139,7 @@ def loop(conn: psycopg2.extensions.connection, cursor: RealDictCursor):
         if next_instruction is None:
             # there are no instructions, get next queue item
             queue_to_instructions(conn, cursor)
-            cursor.execute(f"SELECT * FROM queue_items ORDER BY position ASC LIMIT 1;");
+            cursor.execute(f"SELECT * FROM queue_items WHERE status=0 ORDER BY position ASC LIMIT 1;");
             record = cursor.fetchone()
             queue_item = models.QueueItem(**record)
 
