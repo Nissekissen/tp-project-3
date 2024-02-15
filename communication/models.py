@@ -2,12 +2,8 @@ class QueueItem:
     def __init__(self, id, item_id, from_id, to_id, amount, position, status, _type) -> None:
         self.id = id
         self.item_id = item_id
-        self.from_id = from_id
-        self.to_id = to_id
         self.amount = amount
         self.status = status
-        self.position = position
-        self.type = _type
     
     def __str__(self) -> str:
         return f"QueueItem: id={self.id}, item_id={self.item_id}, from_id={self.from_id}, to_id={self.to_id}, amount={self.amount}, status={self.status}, position={self.position}, type={self.type}"

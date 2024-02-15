@@ -132,7 +132,7 @@ def loop(conn: psycopg2.extensions.connection, cursor: RealDictCursor):
     while True:
         status = serial_conn.get_status()
 
-        if status != 0x00: # Waiting
+        if status != b'0': # Waiting
             continue
         
         next_instruction = get_next_instruction(conn, cursor)
@@ -143,7 +143,7 @@ def loop(conn: psycopg2.extensions.connection, cursor: RealDictCursor):
             record = cursor.fetchone()
             queue_item = models.QueueItem(**record)
 
-            cursor.execute(f"UPDATE queue_items SET status='In progress' WHERE id={queue_item.id};")
+            cursor.execute(f"UPDATE queue_items SET status=1 WHERE id={queue_item.id};")
             continue
 
         serial_conn.send(next_instruction.to_bytes())
