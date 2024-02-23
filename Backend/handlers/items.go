@@ -41,26 +41,51 @@ func CreateItem(c *fiber.Ctx) error {
 
 	type ItemInput struct {
 		Name        string `json:"name"`
-		CellID      int `json:"cell_id"`
 		StartAmount int `json:"start_amount"`
 	}
 
+	
 	var input ItemInput
 	if err := c.BodyParser(&input); err != nil {
 		fmt.Println(err)
 		return c.Status(400).SendString("Could not parse JSON")
 	}
 
+	fmt.Println(input.Name)
+
 	// Create new item
 	item := models.Item{
 		Name:   input.Name,
 		Amount: uint(input.StartAmount),
-		CellID: uint(input.CellID),
 	}
-	fmt.Println(item)
 	database.DB.Create(&item)
 
+	// Add a queue item to the queue with the type CREATED
+	queueItem := models.QueueItem{
+		ItemID:   item.ID,
+		Amount:   int(item.Amount),
+		Status:   int(models.QUEUED),
+		Type:     int(models.CREATED),
+	}
+	database.DB.Create(&queueItem)
+
 	return c.Status(fiber.StatusCreated).JSON(item)
+}
+
+func DeleteItem(c *fiber.Ctx) error {
+	
+	itemId := c.AllParams()["id"]
+	if itemId == "" {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	// Delete item from database
+	database.DB.Where("id = ?", itemId).Delete(&models.Item{})
+
+	// Delete all queue items with the same itemID
+	database.DB.Where("item_id = ?", itemId).Delete(&models.QueueItem{})
+
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func UpdateItem(c *fiber.Ctx) error {

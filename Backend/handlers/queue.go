@@ -56,6 +56,7 @@ func AddItemToQueue(c *fiber.Ctx) error {
 		ItemID:   input.ItemID,
 		Amount:   input.Amount,
 		Status:   int(models.QUEUED),
+		Type:     int(models.ORDER),
 	}
 	database.DB.Create(&queueItem)
 

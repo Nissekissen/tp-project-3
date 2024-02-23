@@ -14,6 +14,7 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/items", handlers.CreateItem)
 	app.Get("/items/:id", handlers.GetItem)
 	app.Patch("/items/:id", handlers.UpdateItem)
+	app.Delete("/items/:id", handlers.DeleteItem)
 
 	app.Get("/cells", handlers.GetCells)
 	app.Post("/cells", handlers.CreateCell)
