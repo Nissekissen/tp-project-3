@@ -14,75 +14,147 @@
 #define MOVING_Z 2
 #define CALIBRATING 3
 
-#define ELECTROMAGNET 8
+#define ELECTROMAGNET 22
+
+#define CALIBRATION_X 24
+#define CALIBRATION_Y 25
 
 int STATUS = WAITING;
-int lastStatus = WAITING; // To detect when status changes
 
 bool electroMagnetEnabled = false;
+bool lastElectroMagnet = false;
 
-bool calibrated = false;
+bool calibrated = true;
+bool calibratedX = false;
+bool calibratedY = false;
+
+const uint8_t MAX_MESSAGE_LENGTH = 8;
+
+int currentPos = 0;
 
 StepperController stepperX(X_DIR, X_STP, 30, 48000, 1);
-StepperController stepperY(Y_DIR, Y_STP, 15, 30000, 1); // TODO: Fix max steps
-StepperController stepperZ(Z_DIR, Z_STP, 30, 25000, 1); // TODO: Fix max steps
+StepperController stepperY(Y_DIR, Y_STP, 15, 28500, -1); // TODO: Fix max steps
+StepperController stepperZ(Z_DIR, Z_STP, 30, 30000, 1);  // TODO: Fix max steps
 
 uint8_t *data = (uint8_t *)malloc(7 * sizeof(uint8_t));
-int currentPos = 0;
 
 Vector3D positions[2];
 
-uint8_t tempData = 0xC0; // 11000000
+void readBytesFromSerial(uint8_t *data)
+{
+
+  while (Serial.available() > 0)
+  {
+    static char message[MAX_MESSAGE_LENGTH];
+    static uint8_t messagePos = 0;
+
+    char inByte = Serial.read();
+
+    if (inByte == '\n' || messagePos >= MAX_MESSAGE_LENGTH)
+    {
+      message[messagePos] = '\0';
+      Serial.println(message);
+      messagePos = 0;
+      continue;
+    }
+
+    message[messagePos] = inByte;
+    messagePos++;
+  }
+}
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   stepperX.init();
   stepperY.init();
   stepperZ.init();
+
+  pinMode(ELECTROMAGNET, OUTPUT);
 }
 
 void loop()
 {
 
+  while (Serial.available() > 0)
+  {
+    static char message[MAX_MESSAGE_LENGTH];
+    static uint8_t messagePos = 0;
+
+    char inByte = Serial.read();
+
+    if (inByte == '\n' || messagePos >= MAX_MESSAGE_LENGTH)
+    {
+      message[messagePos] = '\0';
+      messagePos = 0;
+
+      positions[0] = Vector3D(message[0], message[1], message[2]);
+      positions[1] = Vector3D(message[3], message[4], message[5]);
+
+      Serial.print("Moving to position ");
+      Serial.print(positions[0].x);
+      Serial.print(";");
+      Serial.print(positions[0].y);
+      Serial.print(";");
+      Serial.println(positions[0].z);
+      Serial.print(positions[1].x);
+      Serial.print(";");
+      Serial.print(positions[1].y);
+      Serial.print(";");
+      Serial.println(positions[1].z);
+
+      // break;
+      stepperX.movePercentage(positions[0].x);
+      stepperY.movePercentage(positions[0].y);
+      STATUS = MOVING_X_Y;
+
+      currentPos = 0;
+
+      break;
+    }
+
+    message[messagePos] = inByte;
+    messagePos++;
+  }
+
   if (!calibrated)
   {
-  }
 
-  if (Serial.available() > 0 && Serial.read() == 'S') {
-    Serial.println(STATUS);
-  }
+    if (digitalRead(CALIBRATION_X)) {
+      stepperX.setCurrentSteps(0);
+      Serial.println("Calibrated X");
+      calibratedX = true;
+    }
 
-  if (Serial.available() > 0 && STATUS == WAITING)
-  {
+    if (digitalRead(CALIBRATION_Y)) {
+      stepperY.setCurrentSteps(0);
+      Serial.println("Calibrated Y");
+      calibratedY = true;
+    }
+    
+    if (calibratedX && calibratedY) {
+      calibrated = true;
+      Serial.println("Calibrated");
+    }
 
-    // Format: One byte per axis, 3 bytes per position
+    if (!calibratedX) {
+      stepperX.moveTo(stepperX.getCurrentSteps() - 1);
+      stepperX.step();
+    }
 
-    String _data = Serial.readString();
-    char buf[7];
-    _data.toCharArray(buf, 7);
-
-    data = (uint8_t *)buf;
-
-    positions[0] = Vector3D(data[0], data[1], data[2]);
-    positions[1] = Vector3D(data[3], data[4], data[5]);
-
-    stepperX.movePercentage(positions[0].x);
-    stepperY.movePercentage(positions[0].y);
-    STATUS = MOVING_X_Y;
-    currentPos = 0;
-
-    Serial.print("Moving to position ");
-    Serial.print(positions[0].x);
-    Serial.print(";");
-    Serial.println(positions[0].y);
+    if (!calibratedY) {
+      stepperY.moveTo(stepperY.getCurrentSteps() - 1);
+      stepperY.step();
+    }
 
     return;
   }
 
   if (STATUS == MOVING_X_Y)
   {
-    moveXY();
+    if (moveXY()) {
+      return;
+    }
   }
 
   // If moveZ is done
@@ -94,71 +166,87 @@ void loop()
     // Check if we are done or if we need to pick up the box
   }
 
-  if (electroMagnetEnabled)
-  {
-    // digitalWrite(ELECTROMAGNET, HIGH);
-  }
-  else
-  {
-    // digitalWrite(ELECTROMAGNET, LOW);
-  }
-
   stepperX.step();
   stepperY.step();
   stepperZ.step();
 
-  lastStatus = STATUS;
+  if (electroMagnetEnabled != lastElectroMagnet) {
+    // electromagnet changed
+    digitalWrite(ELECTROMAGNET, electroMagnetEnabled);
+    Serial.print("Writing ");
+    Serial.print(electroMagnetEnabled);
+    Serial.println(" to magnet");
+    delay(1000);
+  }
+
+  lastElectroMagnet = electroMagnetEnabled;
 }
 
-void moveXY()
+int moveXY()
 {
   if (stepperX.isMoving() || stepperY.isMoving())
   {
-    return;
+    return 0;
   }
 
   // If we are at fromX;fromY, move Z to fromZ, otherwise move Z to toZ
-  if (electroMagnetEnabled)
-  {
-    stepperZ.movePercentage(positions[1].z);
-  }
-  else
-  {
+  if (currentPos == 0) {
+    // We are at fromX;fromY
     stepperZ.movePercentage(positions[0].z);
+    STATUS = MOVING_Z;
+    currentPos = 1;
+    return 1;
   }
 
-  STATUS = MOVING_Z;
+  if (currentPos == 1) {
+    // We are at toX;toY
+    stepperZ.movePercentage(positions[1].z);
+    STATUS = MOVING_Z;
+    currentPos = 2;
+    return 1;
+  }
+
+  // Done
+  STATUS = WAITING;
+  Serial.println("Done!");
 }
 
 void checkZ()
 {
-  if (stepperZ.getCurrentPercentage() == 0)
+  Serial.println(stepperZ.getCurrentSteps());
+  if (stepperZ.getCurrentSteps() == 0 && !stepperZ.isMoving())
   {
-    if (electroMagnetEnabled)
-    {
-      // move to toX;toY
+
+    // If we are at fromX;fromY, move to toX;toY, otherwise move to 0 and wait
+    if (currentPos == 1) {
+      // We are at fromX;fromY, move to toX;toY
       stepperX.movePercentage(positions[1].x);
       stepperY.movePercentage(positions[1].y);
       STATUS = MOVING_X_Y;
+      Serial.println("Magnet is enabled, moving to pos 2");
+      return;
     }
-    else
-    {
-      STATUS = WAITING;
+
+    if (currentPos == 2) {
+      // We are at toX;toY, move to 0
+      stepperX.movePercentage(0);
+      stepperY.movePercentage(0);
+      STATUS = MOVING_X_Y;
+      Serial.println("Box dropped off, moving to pos 0");
+      return;
     }
+
     return;
   }
 
-  if (stepperX.getCurrentPercentage() == positions[1].x && stepperY.getCurrentPercentage() == positions[1].y)
-  {
-    // Done, move Z to 0 and go back to waiting.
-    // Disable electromagnet
-    electroMagnetEnabled = false;
-  }
-  else
-  {
+  if (currentPos == 1) {
+    // We are at fromX;fromY, enable electromagnet and move to z=0
+    electroMagnetEnabled = true;
+  } else if (currentPos == 2) {
     // Enable electromagnet
     // Move Z to 0
-    electroMagnetEnabled = true;
+    electroMagnetEnabled = false;
+    Serial.println("Magnet?");
   }
 
   stepperZ.movePercentage(0);

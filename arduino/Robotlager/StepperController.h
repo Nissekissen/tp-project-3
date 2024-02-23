@@ -27,5 +27,8 @@ public:
     void calibrate();
 
     bool isMoving() { return _isMoving; };
-    int getCurrentPercentage() { return _currentSteps * 100 / _maxSteps; }
+    int getCurrentPercentage() { return _currentSteps / _maxSteps * 100; };
+    int getCurrentSteps() { return _currentSteps; };
+    void setCurrentSteps(long int steps) { _currentSteps = steps; };
+
 };

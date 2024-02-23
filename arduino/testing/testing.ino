@@ -1,24 +1,27 @@
+const uint8_t MAX_MESSAGE_LENGTH = 12;
 
 
 void setup() {
-  Serial.begin(115200);
-  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(9600);
 
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (Serial.available() > 0) {
-    uint8_t data = (uint8_t) Serial.read();
-    
-    if (data == 0x31) {
-      digitalWrite(LED_BUILTIN, HIGH);
-      Serial.println("HIGH");
-      return;
+  while (Serial.available() > 0) {
+    static char message[MAX_MESSAGE_LENGTH];
+    static uint8_t messagePos = 0;
+
+    char inByte = Serial.read();
+
+    if (inByte == '\n' || messagePos >= MAX_MESSAGE_LENGTH) {
+      message[messagePos] = '\0';
+      Serial.println(message);
+      messagePos = 0;
+      continue;
     }
 
-    digitalWrite(LED_BUILTIN, LOW);
-
-    Serial.println("LOW");
+    message[messagePos] = inByte;
+    messagePos++;
   }
 }
