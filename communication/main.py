@@ -5,6 +5,7 @@ import models, instructions
 # from serial_comm import SerialComm
 
 
+
 load_dotenv()
 
 # Global variables
@@ -65,7 +66,7 @@ def get_transfer_queue_items() -> [models.QueueItem]:
 
     return queue_items
 
-def get_items() -> [models.Item]:
+def get_items() -> list[models.Item]:
     global cursor
     cursor.execute("SELECT * FROM items;")
     records = cursor.fetchall()

@@ -1,3 +1,13 @@
+STATUS_QUEUED = 0
+STATUS_IN_PROGRESS = 1
+STATUS_COMPLETED = 2
+STATUS_FAILED = 3
+
+TYPE_ORDER = 0
+TYPE_RESTOCK = 1
+TYPE_CREATED = 2
+TYPE_DELETED = 3
+
 class QueueItem:
     def __init__(self, id, item_id, from_id, to_id, amount, position, status, _type) -> None:
         self.id = id

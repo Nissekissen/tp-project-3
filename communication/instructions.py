@@ -30,20 +30,7 @@ def add_instruction(conn: psycopg2.extensions.connection, cursor: RealDictCursor
     conn.commit()
     record = cursor.fetchone()
 
-def queue_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDictCursor) -> [models.Instruction]:
-    '''
-    Basically the brain of this program. It takes in a queue item and turns it into a series of instructions.
-    The problem, or the "hard" part of this, is that there might be boxes above the box that we want to pick up.
-    Therefore, the program needs to check all the other boxes in the pile and move them (generate instructions) for
-    them before moving the box we want to pick up.
-
-    '''
-
-    queue_item = get_next_queue_item(conn, cursor)
-
-    if queue_item is None:
-        return []
-    
+def order_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDictCursor, queue_item: models.QueueItem) -> list[models.Instruction]:
     instructions = []
 
     # Get the cell of the queue item
@@ -85,6 +72,92 @@ def queue_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDict
         instructions.append(instruction)
 
     return instructions
+
+def restock_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDictCursor, queue_item: models.QueueItem) -> list[models.Instruction]:
+    '''
+    This function takes in a queue item of type restock and turns it into a series of instructions.
+    The instructions are to move the box from the restock location to the correct location.
+    Should be the same as order_to_instructions
+    '''
+
+    return order_to_instructions(conn, cursor, queue_item)
+
+def created_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDictCursor, queue_item: models.QueueItem) -> list[models.Instruction]:
+    '''
+    This function takes in a queue item of type created and turns it into a series of instructions.
+    The instructions are to find an empty cell, set the cell_id of the item to that cell, move the box in that cell
+    to the output cell, then move it back to an empty spot.
+    '''
+
+    # Find an empty cell with no empty cells beneath it.
+
+    cursor.execute(f'SELECT * FROM cells;')
+    records = cursor.fetchall()
+    cells = [models.Cell(**record) for record in records]
+    found_cell = None
+
+    for cell in cells:
+        cursor.execute(f'SELECT * FROM items WHERE cell_id={cell.id};')
+        record = cursor.fetchone()
+
+        if record is None:
+            # check if there are any cells beneath it
+            for z in range(cell.z - 1, -1, -1):
+                cursor.execute(f'SELECT * FROM cells WHERE x={cell.x} AND y={cell.y} AND z={z};')
+                record = cursor.fetchone()
+                o_cell: models.Cell = models.Cell(**record)
+
+                cursor.execute(f'SELECT * FROM items WHERE cell_id={o_cell.id};')
+                record = cursor.fetchone()
+                if record is None:
+                    found_cell = cell
+                    break
+        
+        if found_cell != None:
+            break
+    
+    
+
+    
+    pass
+
+def deleted_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDictCursor, queue_item: models.QueueItem) -> list[models.Instruction]:
+    '''
+    This function takes in a queue item of type deleted and turns it into a series of instructions.
+    The instructions are to move the box from the cell to the output cell, then move it back to an empty spot.
+    It should also delete the item from the database.
+    '''
+
+    cursor.execute(f'DELETE FROM items WHERE id={queue_item.item_id};')
+    conn.commit()
+
+    return order_to_instructions(conn, cursor, queue_item)
+    pass
+
+def queue_to_instructions(conn: psycopg2.extensions.connection, cursor: RealDictCursor) -> [models.Instruction]:
+    '''
+    Basically the brain of this program. It takes in a queue item and turns it into a series of instructions.
+    The problem, or the "hard" part of this, is that there might be boxes above the box that we want to pick up.
+    Therefore, the program needs to check all the other boxes in the pile and move them (generate instructions) for
+    them before moving the box we want to pick up.
+
+    '''
+
+    queue_item = get_next_queue_item(conn, cursor)
+
+    if queue_item is None:
+        return []
+    
+    if queue_item.type == models.TYPE_ORDER:
+        return order_to_instructions(conn, cursor, queue_item)
+    elif queue_item.type == models.TYPE_RESTOCK:
+        return restock_to_instructions(conn, cursor, queue_item)
+    elif queue_item.type == models.TYPE_CREATED:
+        return created_to_instructions(conn, cursor, queue_item)
+    elif queue_item.type == models.TYPE_DELETED:
+        return deleted_to_instructions(conn, cursor, queue_item)
+    
+    
             
 def bfs_search(conn: psycopg2.extensions.connection, cursor: RealDictCursor, cell: models.Cell) -> models.Cell:
     # Find a cell to move the box to
