@@ -38,6 +38,7 @@ type QueueItem struct {
 	Amount int  `json:"amount" gorm:"not null"`
 	Status int  `json:"status" gorm:"not null"`
 	Type   int  `json:"type" gorm:"not null"`
+	Paused bool `json:"paused" gorm:"not null"`
 }
 
 // Since the `instructions` table is not used in the application, it is not included in the models.

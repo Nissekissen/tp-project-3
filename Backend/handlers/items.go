@@ -57,6 +57,7 @@ func CreateItem(c *fiber.Ctx) error {
 	item := models.Item{
 		Name:   input.Name,
 		Amount: uint(input.StartAmount),
+		CellID: 0,
 	}
 	database.DB.Create(&item)
 

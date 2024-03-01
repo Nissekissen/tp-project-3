@@ -1,17 +1,13 @@
 import serial, time
 
 
-def main():
-    while True:
-        ser = serial.Serial('COM4', 115200, timeout=0.1)
-        x = input("Enter X position: ")
-        y = input("Enter Y position: ")
-        z = input("Enter Z position: ")
-		
-		# Send the X, Y, Z position to the Arduino as one byte, where the first two bits are empty, the next two are X, the next two are Y, and the last two are Z
-        ser.write(bytes(0b00000000 | int(x) << 4 | int(y) << 2 | int(z)))
-        time.sleep(0.1)
-        print(ser.readline())
+import serial.tools.list_ports
+ports = serial.tools.list_ports.comports()
+print(ports)
 
-if __name__ == "__main__":
-	main()
+for port, desc, hwid in sorted(ports):
+        print("{}: {} [{}]".format(port, desc, hwid))
+
+serial_conn = serial_comm.SerialComm('COM8', 9600)
+
+serial_conn.send(f'{0x64}{0x64}{0x64}{0x32}{0x32}{0x64}'.encode())

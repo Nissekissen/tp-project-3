@@ -57,6 +57,7 @@ func AddItemToQueue(c *fiber.Ctx) error {
 		Amount:   input.Amount,
 		Status:   int(models.QUEUED),
 		Type:     int(models.ORDER),
+		Paused: false,
 	}
 	database.DB.Create(&queueItem)
 
@@ -79,6 +80,27 @@ func DeleteQueueItem(c *fiber.Ctx) error {
 
 	// Delete queue item from database
 	database.DB.Delete(&queueItem)
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func ResumeQueueItem(c *fiber.Ctx) error {
+	
+	queueItemId := c.AllParams()["id"]
+
+	if queueItemId == "" {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	// Get queue item from database
+	queueItem := models.QueueItem{}
+	if err := database.DB.Where("id = ?", queueItemId).First(&queueItem).Error; err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	// Resume queue item
+	queueItem.Paused = false
+	database.DB.Save(&queueItem)
 
 	return c.SendStatus(fiber.StatusOK)
 }

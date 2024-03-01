@@ -34,34 +34,11 @@ int currentPos = 0;
 
 StepperController stepperX(X_DIR, X_STP, 30, 48000, 1);
 StepperController stepperY(Y_DIR, Y_STP, 15, 28500, -1); // TODO: Fix max steps
-StepperController stepperZ(Z_DIR, Z_STP, 30, 30000, 1);  // TODO: Fix max steps
+StepperController stepperZ(Z_DIR, Z_STP, 40, 30000, 1);  // TODO: Fix max steps
 
 uint8_t *data = (uint8_t *)malloc(7 * sizeof(uint8_t));
 
 Vector3D positions[2];
-
-void readBytesFromSerial(uint8_t *data)
-{
-
-  while (Serial.available() > 0)
-  {
-    static char message[MAX_MESSAGE_LENGTH];
-    static uint8_t messagePos = 0;
-
-    char inByte = Serial.read();
-
-    if (inByte == '\n' || messagePos >= MAX_MESSAGE_LENGTH)
-    {
-      message[messagePos] = '\0';
-      Serial.println(message);
-      messagePos = 0;
-      continue;
-    }
-
-    message[messagePos] = inByte;
-    messagePos++;
-  }
-}
 
 void setup()
 {
@@ -87,6 +64,8 @@ void loop()
     {
       message[messagePos] = '\0';
       messagePos = 0;
+
+      Serial.println(message);
 
       positions[0] = Vector3D(message[0], message[1], message[2]);
       positions[1] = Vector3D(message[3], message[4], message[5]);
@@ -173,9 +152,6 @@ void loop()
   if (electroMagnetEnabled != lastElectroMagnet) {
     // electromagnet changed
     digitalWrite(ELECTROMAGNET, electroMagnetEnabled);
-    Serial.print("Writing ");
-    Serial.print(electroMagnetEnabled);
-    Serial.println(" to magnet");
     delay(1000);
   }
 
@@ -213,7 +189,6 @@ int moveXY()
 
 void checkZ()
 {
-  Serial.println(stepperZ.getCurrentSteps());
   if (stepperZ.getCurrentSteps() == 0 && !stepperZ.isMoving())
   {
 
@@ -223,16 +198,16 @@ void checkZ()
       stepperX.movePercentage(positions[1].x);
       stepperY.movePercentage(positions[1].y);
       STATUS = MOVING_X_Y;
-      Serial.println("Magnet is enabled, moving to pos 2");
       return;
     }
 
     if (currentPos == 2) {
       // We are at toX;toY, move to 0
-      stepperX.movePercentage(0);
-      stepperY.movePercentage(0);
-      STATUS = MOVING_X_Y;
-      Serial.println("Box dropped off, moving to pos 0");
+      // stepperX.movePercentage(0);
+      // stepperY.movePercentage(0);
+      // STATUS = MOVING_X_Y;
+      STATUS = WAITING;
+      Serial.println("Done!");
       return;
     }
 
@@ -246,7 +221,6 @@ void checkZ()
     // Enable electromagnet
     // Move Z to 0
     electroMagnetEnabled = false;
-    Serial.println("Magnet?");
   }
 
   stepperZ.movePercentage(0);

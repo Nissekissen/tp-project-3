@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"os"
 	"robotlager/models"
 
 	"gorm.io/driver/postgres"
@@ -14,10 +13,7 @@ var DB *gorm.DB
 
 func Connect() {
 	dsn := fmt.Sprintf(
-		"host=db user=%s password=%s dbname=%s port=5432 sslmode=disable TimeZone=Europe/Stockholm",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_NAME"))
+		"host=localhost user=postgres password=postgres dbname=robotlager port=5432 sslmode=disable TimeZone=Europe/Stockholm")
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
